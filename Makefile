@@ -20,7 +20,7 @@ help:
 setup: ## one-time install + .env scaffold
 	@test -f .env || cp .env.example .env
 	@bash 00-setup/pull-images.sh
-	@python3 00-setup/verify-docker.py
+	@python 00-setup/verify-docker.py
 
 up: ## start the stack
 	$(COMPOSE) up -d
@@ -47,7 +47,7 @@ smoke: ## health-check all 7 services
 
 load: ## run baseline locust load (concurrency=10, 60s)
 	cd 02-prometheus-grafana/load-test && \
-	  locust -f locustfile.py --headless -u 10 -r 2 -t 60s --host http://localhost:8000
+	  python -m locust -f locustfile.py --headless -u 10 -r 2 -t 60s --host http://localhost:8000
 
 alert: ## trigger an alert by killing the app, wait, then restore
 	bash scripts/trigger-alert.sh
@@ -55,10 +55,10 @@ alert: ## trigger an alert by killing the app, wait, then restore
 trace: ## generate one traced request and print its trace_id
 	@curl -sS -X POST http://localhost:8000/predict \
 	  -H 'Content-Type: application/json' \
-	  -d '{"prompt":"hello"}' | python3 -c 'import json,sys; d=json.load(sys.stdin); print("trace_id:",d.get("trace_id","?"))'
+	  -d '{"prompt":"hello"}' | python -c 'import json,sys; d=json.load(sys.stdin); print("trace_id:",d.get("trace_id","?"))'
 
 drift: ## run drift detection notebook (cli mode)
-	cd 04-drift-detection && python3 scripts/drift_detect.py
+	cd 04-drift-detection && python scripts/drift_detect.py
 
 demo: ## end-to-end demo (load -> alert -> trace -> drift)
 	$(MAKE) load
@@ -67,10 +67,10 @@ demo: ## end-to-end demo (load -> alert -> trace -> drift)
 	$(MAKE) drift
 
 verify: ## rubric gate — exits 0 only if all checkpoints pass
-	python3 scripts/verify.py
+	python scripts/verify.py
 
 lint-dashboards: ## validate Grafana dashboard JSONs
-	python3 scripts/lint-dashboards.py 02-prometheus-grafana/grafana/dashboards/*.json
+	python scripts/lint-dashboards.py 02-prometheus-grafana/grafana/dashboards/*.json
 
 clean: ## stop stack + remove volumes (DESTRUCTIVE)
 	$(COMPOSE) down -v
